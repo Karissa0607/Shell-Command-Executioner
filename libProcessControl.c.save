@@ -1,0 +1,254 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<fcntl.h>
+#include<unistd.h>
+#include<signal.h>
+#include<sys/types.h>
+#include<sys/wait.h>
+#include<sys/stat.h>
+
+#include "libParseArgs.h"
+#include "libProcessControl.h"
+
+/**
+ * parallelDo -n NUM -o OUTPUT_DIR COMMAND_TEMPLATE ::: [ ARGUMENT_LIST ...]
+ * build and execute shell command lines in parallel
+ */
+
+char *createCommandHelper(char *commandTemplate, char *argument) {
+        char *command = NULL;
+	char *substring = "{}";
+        int boolean = 0;
+        int i = 0;
+        int j = 0;
+        int start = 0;
+        while (*(commandTemplate + i) != '\0') {
+                if (*(commandTemplate + i) == *(substring + j)) {
+                        if (!boolean) {
+                                start = i;
+                        };
+                        boolean = 1;
+                        j++;
+                        if (*(substring + j) == '\0') {
+                                break;
+                        };
+                } else {
+                        start = 0;
+                        boolean = 0;
+                        j = 0;
+                };
+                i++;
+        };
+        int commandTemplateLen = 0;
+        int l = 0;
+        while(*(commandTemplate + l) != '\0') {
+                commandTemplateLen++;
+                l++;
+        };
+        if (*(substring + j) == '\0' && boolean) {
+                int argumentLen = 0;
+                int k = 0;
+                while(*(argument + k) != '\0') {
+                        argumentLen++;
+			k++;
+                };
+                int commandLen = commandTemplateLen + argumentLen - 2 + 1;
+                command = (char *) malloc(sizeof(char)*commandLen);
+                k = 0;
+                for(int i = 0; i < start; i++) {
+                        *(command + i) = *(commandTemplate + i);
+                        k++;
+                };
+                for(int i = 0; i < argumentLen; i++) {
+                        *(command + k) = *(argument + i);
+                        k++;
+                };
+                for (int i = start + 2; i<commandLen; i++) {
+                        *(command + k) = *(commandTemplate + i);
+                        k++;
+                };
+                *(command + k) = '\0';
+		return command;
+        } else {
+                return NULL;
+        };
+}
+/**
+ * create and return a newly malloced command from commandTemplate and argument
+ * the new command replaces each occurrance of {} in commandTemplate with argument
+ */
+char *createCommand(char *commandTemplate, char *argument){
+	//figure out how to free :)
+	char *command=NULL;
+	char *oldString = commandTemplate;
+	char *newString;
+	int cont = 1;
+	while (cont) {
+		newString = createCommandHelper(oldString, argument);
+		if (newString == NULL) {
+			cont = 0;
+			break;
+		};
+		oldString = newString;
+	};
+	int j = 0;
+	int oldStringLen = 0;
+	while (*(oldString+j) != '\0') {
+		oldStringLen++;
+		j++;
+	};
+	int i = 0;
+        command = (char *) malloc(sizeof(char)*oldStringLen);
+        while(*(oldString + i) != '\0') {
+        	*(command + i) = *(oldString + i);
+                i++;
+        };
+        *(command + i) = '\0';
+	return command;
+}
+
+typedef struct PROCESS_STRUCT {
+	int pid;
+	int ifExited;
+	int exitStatus;
+	int status;
+	char *command;
+} PROCESS_STRUCT;
+
+typedef struct PROCESS_CONTROL {
+	int numProcesses;
+	int numRunning;
+	int maxNumRunning;
+	int numCompleted;
+	PROCESS_STRUCT *process;
+} PROCESS_CONTROL;
+
+PROCESS_CONTROL processControl;
+
+void printSummary(){
+	printf("%d %d %d\n", processControl.numProcesses, processControl.numCompleted, processControl.numRunning);
+}
+void printSummaryFull(){
+	printSummary();
+	for(int i=0;i<processControl.numCompleted; i++){
+		printf("%d %d %d %s\n", 
+				processControl.process[i].pid,
+				processControl.process[i].ifExited,
+				processControl.process[i].exitStatus,
+				processControl.process[i].command);
+	}
+}
+/**
+ * find the record for pid and update it based on status
+ * status has information encoded in it, you will have to extract it
+ */
+void updateStatus(int pid, int status){
+
+	// YOUR CODE GOES HERE
+	
+}
+
+void handler(int signum){
+
+	// YOUR CODE GOES HERE
+
+}
+/**
+ * This function does the bulk of the work for parallelDo. This is called
+ * after understanding the command line arguments. runParallel 
+ * uses pparams to generate the commands (createCommand), 
+ * forking, redirecting stdout and stderr, waiting for children, ...
+ * Instead of passing around variables, we make use of globals pparams and
+ * processControl. 
+ */
+int runParallel(){
+
+	// YOUR CODE GOES HERE
+	// THERE IS A LOT TO DO HERE!!
+	// TAKE SMALL STEPS, MAKE SURE THINGS WORK AND THEN MOVE FORWARD.
+	//char *commands;
+	//char *command;
+	//for(int i = 0; i < pparams.argumentListLen; i++) {
+		//printf("%s, %s", pparams.commandTemplate, pparams.argumentList[i]);
+		//command = createCommand(pparams.commandTemplate, pparams.argumentList[i]);
+		//printf("%s", command);
+		//commands = command;
+		//printf("%s", commands[i]);
+	//};
+	//for(int i = 0; i < pparams.argumentListLen; i++) {
+	//	printf("%s ", commands[i]);
+	//};
+
+        // Create the PROCESS_CONTROL and initialize it
+
+        //if ((processControl = (PROCESS_CONTROL *) malloc(sizeof(PROCESS_CONTROL))) == NULL) return 0;
+        //processControl->numProcesses = 0;
+	//processControl->numRunning = 0;
+	//processControl->numCompleted = 0;
+	//processControl->maxNumRunning = pparams.maxNumRunning;
+        //if ((processControl->process = (PROCESS_STRUCT *) malloc(sizeof(PROCESS_STRUCT)*pparams.maxNumRunning)) == NULL) {
+        //        free(processControl);
+        //        return 0;
+        //};
+
+	int isParent = 1;
+        pid_t child_pid[pparams.maxNumRunning];
+        pid_t current_child_pid;
+        pid_t init_child_pid;
+        pid_t pid = getpid(); // my pid
+        pid_t ppid= getppid(); // my parents pid (probably bash running in the terminal)
+
+        printf("Parent (pid=%d): My parent is ppid=%d\n", pid, ppid);
+        printf("Parent (pid=%d): One process so far...\n", pid);
+        printf("Parent (pid=%d): Thats about to change...\n", pid);
+
+        for(int i=0;i<pparams.maxNumRunning;i++){
+                init_child_pid=fork();
+
+                if(init_child_pid==0){
+			//processControl->numProcesses += 1;
+			//printf("%d \n", processControl->numProcesses);
+                        pid = getpid(); // I have a new pid
+                        ppid = getppid(); // Here is my parent
+                        printf("Child (pid=%d): My parent is ppid=%d\n", pid, ppid);
+                        isParent=0;
+                        break;
+                } else if(init_child_pid>0) {
+                        child_pid[i] = init_child_pid;
+			processControl->numProcesses += 1;
+                        printf("%d \n", processControl->numProcesses);
+                        //printf("Parent (pid=%d): child_pid=%d\n", pid, init_child_pid);
+			continue;
+                } else {
+                        printf("Fork error, no child.\n");
+                }
+        }
+
+	if(isParent) {
+                printf("Parent (pid=%d): waiting for my child \n", pid);
+                for (int i=0; i < pparams.maxNumRunning; i++) {
+                        // Waiting on my child. Significant changes needed to wait on two children
+                        int child_status;
+                        current_child_pid =waitpid(child_pid[i], &child_status, 0); // child_status now encodes information about the child
+                        printf("Parent (pid=%d): child pid=%d status=%d exit status=%d\n",pid, current_child_pid, child_status, WEXITSTATUS(child_status));
+                        if(WIFEXITED(child_status)){
+                                printf("Parent (pid=%d): child pid=%d exited successfully\n", pid, current_child_pid);
+                        } else {
+                                printf("Parent (pid=%d): child pid=%d state changed for some other reason\n", pid, current_child_pid);
+                        }
+                };
+        }
+
+        sleep(10);
+
+        if(isParent){
+                printf("Parent (pid=%d): exiting\n", pid);
+                exit(0);
+        } else {
+                printf("Chi
+                exit(7);
+        }
+	printParallelParams();
+	printSummaryFull();
+}
